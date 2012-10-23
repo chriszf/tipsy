@@ -6,7 +6,7 @@ import sqlite3
 def connect_db():
     return sqlite3.connect("tipsy.db")
 
-def new_user(db, self, email, password, name):          
+def new_user(db, email, password, name):          
     c = db.cursor()                                     
     query = """INSERT INTO Users VALUES (NULL, ?, ?, ?)"""                                                           
     c.execute(query, (email, password, name))           

@@ -1,4 +1,4 @@
-Tipsy: A Flask Tutorial
+Tipsy: Being a Tutorial on the Ways of Flask
 ======================
 [Flask](http://flask.pocoo.org) is a so-called 'microframework' for writing web applications in Python. It's minimalist, and contains nothing but a receptacle in which you might put the components of your kitchen sink. Contrast this with Django, which includes two sinks, a fully-stocked pantry, and a celebrity chef.
 
@@ -75,6 +75,7 @@ Remember the naming conventions from before: the table name is a capitalized, pl
 Save your script in a file named schema.sql. If you need some help, we've provided the script for you here:
 
 <div class="spoilers">
+
     -- schema.sql
 
     create table Users (
@@ -90,7 +91,6 @@ Save your script in a file named schema.sql. If you need some help, we've provid
         completed_at DATETIME,
         user_id INTEGER
     );
-
 </div>
 
 Load your sql database using the following command (make sure you're in your repository directory).
@@ -142,7 +142,6 @@ Next, we're going to add a function called 'authenticate' which, given a usernam
 
     # If you use our implementation, make sure to
     # look up the zip function
-
 </div>
 
 On your own, implement the following methods:
@@ -241,7 +240,6 @@ In the templates directory, we'll put an html file named 'index.html'. This file
         <h1>Welcome to Tipsy</h1>
     </body>
     </html>
-
 </div>
 
 Now, we'll change our view to use this template file, using the render\_template function:
@@ -284,7 +282,6 @@ We can fill in the empty spaces in our templates with the contents of variables.
     @app.route("/tasks")
     def list_tasks():
         return render_template("list_tasks.html")
-
 </div>
 
 You'll have to create a "list\_tasks.html" file in the templates directory. Make it similar to the index.html file, but change the h1 tag to simply say 'Task List'.
@@ -310,7 +307,6 @@ Let's review the 'get\_tasks' function in our model.py file. Here's a reference 
             tasks.append(task)
 
         return tasks
-
 </div>
 
 We can call this method and our model.connect\_db method directly from our view. We can then take the resulting list, and send it as a parameter to our template.
@@ -361,7 +357,6 @@ How do we do this in html? The short answer is we can't. The longer answer is th
             </ul>
         </body>
     </html>
-
 </div>
 
 The Jinja for-loop is very much like a regular python for-loop and behaves in much the same way. Here, it must be wrapped in the {% %} characters, and it must have a matching {% endfor %} (we no longer have a sensible way to keep track of indentation inside of html.
@@ -390,7 +385,6 @@ Bootstrap.css defines a good set of default styles for us to base our visual sty
         <title>Tipsy</title>
         <link rel="stylesheet" href="/static/css/bootstrap.css" type="text/css">
     </head>
-
 </div>
 
 Reload the page and bask in the majestic beauty of bootstrap.
@@ -408,7 +402,6 @@ Still, we need to get a title from the user. The usual way we collect data is wi
     @app.route("/new_task")
     def list_tasks():
         return render_template("new_task.html")
-
 </div>
 
 We need to create our new\_task.html file in our templates directory. To preserve the visual style we developed, we can just copy list\_tasks.html to our new file and replace the body.
@@ -423,7 +416,6 @@ Create a form with a text field and a submit button. The text field should have 
         <input type="text" name="task_title"></input>
         <input type="submit">
     </form>
-
 </div>
 
 Reload your page and fill out the form and see what happens when you click the submit button.
@@ -484,7 +476,6 @@ Now that we have a place to send the contents of the form, we have to tell the f
         <input type="text" name="task_title"></input>
         <input type="submit">
     </form>
-
 </div>
 
 Earlier, we had a text input field named task\_title in our form:

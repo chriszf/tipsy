@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="tutorial.css" type="text/css" />
 </head>
 <body>
-<h1 id="tipsy-a-flask-tutorial">Tipsy: A Flask Tutorial</h1>
+<h1 id="tipsy-being-a-tutorial-on-the-ways-of-flask">Tipsy: Being a Tutorial on the Ways of Flask</h1>
 <p><a href="http://flask.pocoo.org">Flask</a> is a so-called 'microframework' for writing web applications in Python. It's minimalist, and contains nothing but a receptacle in which you might put the components of your kitchen sink. Contrast this with Django, which includes two sinks, a fully-stocked pantry, and a celebrity chef.</p>
 <p>This means when we build something with Flask, we have to add everything to the system ourselves. This isn't nearly as hard as it sounds. We'll be using Flask to build a todo-list from the ground up.</p>
 <p>Things we will need:</p>
@@ -77,9 +77,10 @@ Notice the addition of the user_id field to represent the relation.
 <p>Remember the naming conventions from before: the table name is a capitalized, plural version of the thing it represents.</p>
 <p>Save your script in a file named schema.sql. If you need some help, we've provided the script for you here:</p>
 <div class="spoilers">
-    
-<p>-- schema.sql</p>
-<pre><code>create table Users (
+
+<pre><code>-- schema.sql
+
+create table Users (
     id INTEGER PRIMARY KEY,
     email VARCHAR(64),
     password VARCHAR(64),

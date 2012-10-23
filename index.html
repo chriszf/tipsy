@@ -19,9 +19,9 @@
 <li><a href="http://twitter.github.com/bootstrap/">Bootstrap</a></li>
 <li><a href="http://www.python.org">Python 2.6-ish</a></li>
 </ul>
-<p>This tutorial is formatted somewhat in the manner of a choose-your-own-adventure. If you're feeling adventurous, you may choose to ignore the supplied hints and strike out on your own as you see fit.</p>
+<p>This tutorial is formatted somewhat in the manner of a choose-your-own-adventure. If you're feeling adventurous, you may choose to ignore the supplied hints and strike out on your own as you see fit, and see what treasures ye may find lurking.</p>
 <h2 id="chapter-0-in-which-we-build-our-git-repository">Chapter 0: In Which We Build Our Git Repository</h2>
-<p>A pre-made repository is available for you at http://www.github.com/chriszf/tipsy/. If you choose to use it, fork then clone it. On the other hand, you are welcome to make your own repository from scratch.</p>
+<p>A pre-made repository is available for you at http://www.github.com/chriszf/tipsy/. It contains most of the code written here, including all of the 'hidden' code in the tutorial. Use it as a reference point, but try to create your own repository and follow along the tutorial.</p>
 <h2 id="chapter-1-in-which-we-think-about-things">Chapter 1: In Which We Think About Things</h2>
 <p>The approach to this project, according to Zebulon's Grand Unified Theory of Application Development, is to first identify the nouns that make up the model. In this case, we don't have a pre-existing project to extract our nouns from, so we'll have to use our imaginations. We start by identifying 'use cases', or descriptions of how a user interacts with our software. We don't necessarily need to understand all the details at this time, just a high level description to help plan our project.</p>
 <p>Since our application is a task list, here are some archetypical use cases:</p>
@@ -108,13 +108,12 @@ import sqlite3
 
 def connect_db():
     return sqlite3.connect(&quot;tipsy.db&quot;)</code></pre>
-<p>Given a database 'handle', we can make queries against our database. Right now the database is empty, so we need to write a method to put some data in. Although it's not obvious why yet, we need a mechanism to get the id of the most recent data we put in.</p>
-<pre><code>def new_user(db, self, email, password, name):
+<p>Given a database 'handle', we can make queries against our database. Right now the database is empty, so we need to write a method to put some data in. Although it's not obvious why yet, we need a mechanism to get the id of the most recent data we put in. Look up the <em>lastrowid</em> attribute of cursors in the python sqlite documentation.</p>
+<pre><code>def new_user(db, email, password, name):
     c = db.cursor()
     query = &quot;&quot;&quot;INSERT INTO Users VALUES (NULL, ?, ?, ?)&quot;&quot;&quot;
     result = c.execute(query, (email, password, name))
     db.commit()
-
     return result.lastrowid</code></pre>
 <p>If you don't remember the syntax here, review the <a href="https://github.com/chriszf/sql_lesson">sql lesson</a> before moving on.</p>
 <p>Next, we're going to add a function called 'authenticate' which, given a username and password, returns a dictionary of a user's fields pulled from the database, and a <em>None</em> if the credentials do not match. Try to implement this yourself, but feel free to use our reference implementation:</p>
@@ -137,11 +136,278 @@ def connect_db():
 
 <p>On your own, implement the following methods:</p>
 <ul>
-<li>new_task(db, title, user_id) -- Created a new task, returns the id of the newly created row. Make sure to populate the created_at field.</li>
-<li>get_user(db, user_id) -- Fetch a user's record based on his id. Return the user as a dictionary, like our authenticate method.</li>
-<li>complete_task(db, task_id) -- Marks a task as being complete, setting the completed_at field.</li>
-<li>get_tasks(db, user_id) -- Gets all the tasks for the given user id. Returns all the tasks in the system if no user_id is given. Returns them as a list of dictionaries.</li>
-<li>get_task(db, task_id) -- Get a single task, given its id. Return the task as a dictionary as above in the authenticate method.</li>
+<li><strong>new_task(db, title, user_id)</strong> -- Created a new task, returns the id of the newly created row. Make sure to populate the created_at field.</li>
+<li><strong>get_user(db, user_id)</strong> -- Fetch a user's record based on his id. Return the user as a dictionary, like our authenticate method.</li>
+<li><strong>complete_task(db, task_id)</strong> -- Marks a task as being complete, setting the completed_at field.</li>
+<li><strong>get_tasks(db, user_id)</strong> -- Gets all the tasks for the given user id. Returns all the tasks in the system if no user_id is given. Returns them as a list of dictionaries.</li>
+<li><strong>get_task(db, task_id)</strong> -- Get a single task, given its id. Return the task as a dictionary as above in the authenticate method.</li>
 </ul>
+<p>As you write these functions, save and commit frequently. Test that your functions work by running your model file with the -i flag:</p>
+<pre><code>Meringue:tipsy chriszf$ python -i model.py 
+&gt;&gt;&gt; db = connect_db()
+&gt;&gt;&gt; bob_id = new_user(db, &quot;bob@loblaw.com&quot;, &quot;password&quot;, &quot;Bob Loblaw&quot;)
+&gt;&gt;&gt; bob_task = new_task(db, &quot;Finish my law blog&quot;, bob_id)
+&gt;&gt;&gt; </code></pre>
+<p>When you're done, 'seed' your database with some initial data by writing a small script that imports your model file.</p>
+<pre><code>&quot;&quot;&quot;
+seed.py
+&quot;&quot;&quot;
+import model
+
+db = model.connect_db()
+user_id = model.new_user(db, &quot;chriszf@gmail.com&quot;, &quot;securepassword&quot;, &quot;Christian&quot;)
+task = model.new_task(db, &quot;Complete this task list&quot;, user_id)</code></pre>
+<p>Add as many sample users and tasks as you like, then run your seed.py program to fill your database.</p>
+<h2 id="chapter-4-in-which-our-hero-is-introduced">Chapter 4: In Which Our Hero Is Introduced</h2>
+<p>Now, it's time to bring Flask into the mix. There's nothing 'web-specific' about our model code that we've written. We could just as easily have written a command line database app as before, but that's not what we're here for. In our Zugtoad diagrams, the next step is identifying the widget. In this case, it's not our Users, but our Tasks, so we should start by making a view for those (we'll worry about making it novel later).</p>
+<p>First, we set up our main application file as follows from the Flask website:</p>
+<pre><code>&quot;&quot;&quot;
+tipsy.py -- A flask-based todo list
+&quot;&quot;&quot;
+from flask import Flask, render_template
+import model
+
+app = Flask(__name__)
+
+@app.route(&quot;/&quot;)
+def index():
+    return &quot;Woo I&#39;m tipsy&quot;
+
+if __name__ == &quot;__main__&quot;:
+    app.run(debug=True)</code></pre>
+<p>There's a fair bit of code here, so we'll break it down. The import lines aren't anything special, but notice we imported our model file that we wrote in the last chapter. The next line simply initializes our program to be a Flask application.</p>
+<pre><code>app = Flask(__name__)</code></pre>
+<p>Notice the capital letter, this means Flask is a class. So our app is an instantiation of the Flask class. The first parameter passed to the initializer is the name of the module (file) that we're doing this from. Mostly, you can ignore this detail and do it blindly. In more complex apps, you can use this to make your log messages clearer. We'll skip ahead past the next bit and look at the last lines:</p>
+<pre><code>if __name__ == &quot;__main__&quot;:
+    app.run(debug=True)</code></pre>
+<p>These lines start our application server/web server/flask application when we run our program from the command line. There are times when we want to import our tipsy.py file but <em>not</em> start the server. This is true especially in the case of running tests. We start the server in debug mode to make things simple.</p>
+<p>The server, once started, listens for requests from web browsers. When a request comes in, Flask looks at the url asked for by the browser. It then matches the url with any number of 'routes' registered in the application:</p>
+<pre><code>@app.route(&quot;/&quot;)
+def index():
+    return &quot;Woo I&#39;m tipsy&quot;</code></pre>
+<p>This is a <em>decorated function</em>. The function is named 'index', but we have a 'decorator' above it that tells Flask what url (route) is attached to this function. The exact mechanism it uses to do this is <a href="http://stackoverflow.com/questions/739654/understanding-python-decorators">slightly complicated</a>. Feel free to revisit it at a later date, and trust that it makes this mapping between url and function. Whenever a browser asks for that url from our server, the decorated function (also called a 'view') gets called, and the return value of that function is sent to the browser.</p>
+<p>In this case, we are saying the url path &quot;/&quot; (the latter part of 'http://localhost:5000/'), is mapped to the view function named 'index'. When index is called, it returns the string, &quot;Woo I'm tipsy&quot; back to the browser to be displayed. Opena browser and go to <a href="http://localhost">http://localhost:5000/</a></p>
+<p>If we want to return html, we could modify our 'index' view to be the following:</p>
+<pre><code>@app.route(&quot;/&quot;)
+def index():
+    return &quot;&lt;html&gt;&lt;body&gt;Woo I&#39;m tipsy&lt;/body&gt;&lt;/html&gt;&quot;</code></pre>
+<p>Try doing this and reloading the page. This, however, is unsustainable. The HTML here is too hard to edit to be useful. Fortunately, we have 'templates', HTML files that have variables we can fill in. If it helps, you can think about templates as mad libs. We'll need a place to put our templates. By default, it needs to be in a directory called 'templates'. We also need a few more directories to make everything fall into place, so we'll go ahead and make those now.</p>
+<pre><code># Directories that need to be created in our project directory.
+templates/
+static/img/
+static/css/</code></pre>
+<p>In the templates directory, we'll put an html file named 'index.html'. This file should contain a well-formed header and body, with a single h1 element in the body that says, &quot;Welcome to Tipsy&quot;. The page title should simply be 'Tipsy'. Try it on your own, reviewing Pamela Fox's materials if necessary.</p>
+<div class="spoilers">
+
+<pre><code>&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Tipsy&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Welcome to Tipsy&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+
+<p>Now, we'll change our view to use this template file, using the render_template function:</p>
+<pre><code>@app.route(&quot;/&quot;)
+def index():
+    return render_template(&quot;index.html&quot;)</code></pre>
+<p>Save all your files, and check your server in the browser to see how your app has changed.</p>
+<p>One last thing, remember how we said our template was like a mad lib? Well, right now our template is completely static. We have no way to 'fill in the blanks', so to speak. We don't have any blanks, either. Let's make some now. Modify your index.html file to look like this:</p>
+<pre><code>&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Tipsy&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Welcome to Tipsy, {{ user_name }}&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p>Save it, then reload the page and see what happens.</p>
+<p>The output in our browser has a comma, but an empty space where our double-braces enclosed 'user_name' is. Curious. Let's change our view function one last time.</p>
+<pre><code>@app.route(&quot;/&quot;)
+def index():
+    return render_template(&quot;index.html&quot;, user_name=&quot;chriszf&quot;)</code></pre>
+<p>Reload the page and behold the magic.</p>
+<p>An explanation: in our templates, we can enclose a word with double braces, making it into a variable. This is essentially, in our mad lib analogy, making an empty space in our text and asking for an adverb. In our view, when we render the template, we can fill in that blank by passing in a named argument to the render_template function. Try changing the name of the argument in the view and the template and seeing how they interact.</p>
+<h2 id="chapter-5-in-which-flask-is-introduced-to-a-model">Chapter 5: In Which Flask is Introduced to a Model</h2>
+<p>We can fill in the empty spaces in our templates with the contents of variables. It stands to reason that we can populate those variables with data from our database. Let's see how that's done. Make a new view named list_tasks that is attached to the &quot;/tasks&quot; url. It should render a template named &quot;list_tasks.html&quot; and return the result of that.</p>
+<div class="spoilers">
+
+<pre><code>@app.route(&quot;/tasks&quot;)
+def list_tasks():
+    return render_template(&quot;list_tasks.html&quot;)</code></pre>
+</div>
+
+<p>You'll have to create a &quot;list_tasks.html&quot; file in the templates directory. Make it similar to the index.html file, but change the h1 tag to simply say 'Task List'.</p>
+<p>Remember, a view is just a regular function. There is nothing special about it being part of a web app except that the return value of the view is sent to a browser. This means we can call any of the functions we've already written in our model file.</p>
+<p>Let's review the 'get_tasks' function in our model.py file. Here's a reference implementation, compare it to your own:</p>
+<div class="spoilers">
+
+<pre><code>def get_tasks(db, user_id):
+    c = db.cursor()
+    if user_id:
+        query = &quot;&quot;&quot;SELECT * from Tasks WHERE user_id = ?&quot;&quot;&quot;
+        c.execute(query, (user_id,))
+    else:
+        query = &quot;&quot;&quot;SELECT * from Tasks&quot;&quot;&quot;
+        c.execute(query)
+    tasks = []
+    rows = c.fetchall()
+    for row in rows:
+        task = dict(zip([&quot;id&quot;, &quot;title&quot;, &quot;created_at&quot;, &quot;completed_at&quot;, &quot;user_id&quot;], row))
+        tasks.append(task)
+
+    return tasks</code></pre>
+</div>
+
+<p>We can call this method and our model.connect_db method directly from our view. We can then take the resulting list, and send it as a parameter to our template.</p>
+<pre><code>@app.route(&quot;/tasks&quot;)
+def list_tasks():
+    db = model.connect_db()
+    tasks_from_db = model.get_tasks(db, None)
+    return render_template(&quot;list_tasks.html&quot;, tasks=tasks_from_db)</code></pre>
+<p>Chew on this view for a moment. When a user accesses the &quot;/tasks&quot; url, it:</p>
+<ol style="list-style-type: decimal">
+<li>Connects to the database</li>
+<li>Gets a list of all the tasks</li>
+<li>Sends that list to the list_tasks template as a parameter named 'tasks'</li>
+</ol>
+<p>If we attempt to compartmentalize our view of the system, we can assume that when we render our template, we are receiving in the variable 'tasks' a list of dictionaries that represent all of the tasks in our database. We can then ignore all the other facts about our tasklist variable: where it came from, the functions required to execute it, etc. We have a list of task dictionaries, and that's all that matters.</p>
+<h2 id="chapter-6-in-which-we-try-formatting-our-data">Chapter 6: In Which We Try Formatting Our Data</h2>
+<p>In our list_tasks template, we do nothing with the 'tasks' variable. We need to display it on the screen. If we do the double-brace trick from before, we get bad output:</p>
+<pre><code>{{ tasks }}
+
+Renders this in the html:
+[{&#39;completed_at&#39;: None, &#39;created_at&#39;: u&#39;2012-10-23 18:25:53&#39;, &#39;user_id&#39;: 1, &#39;id&#39;: 1, &#39;title&#39;: u&#39;Finish this app&#39;},
+ {&#39;completed_at&#39;: None, &#39;created_at&#39;: u&#39;2012-10-23 18:25:53&#39;, &#39;user_id&#39;: 1, &#39;id&#39;: 2, &#39;title&#39;: u&#39;Make it pretty&#39;}]</code></pre>
+<p>We need to display this more sensibly. What we have is a list, and fortunately, html has a few mechanisms for displaying lists. Let's use the UL tag, the unordered list for this. Our final html should look like this:</p>
+<pre><code>&lt;ul&gt;
+&lt;li&gt;Task 1: Finish this App&lt;/li&gt;
+&lt;li&gt;Task 2: Make it pretty&lt;/li&gt;
+&lt;/ul&gt;</code></pre>
+<p>How do we do this in html? The short answer is we can't. The longer answer is that our templating language, <a href="http://jinja.pocoo.org/docs/templates/">Jinja2</a> has the ability to include python-like code inside of our html, including for loops. Check the Jinja documentation and try building the loop on your own before checking your answer:</p>
+<div class="spoilers">
+
+<pre><code>&lt;html&gt;
+    &lt;head&gt;&lt;title&gt;Tipsy&lt;/title&gt;&lt;/head&gt;
+    &lt;body&gt;
+        &lt;h1&gt;Task List&lt;/h1&gt;
+        &lt;ul&gt;
+        {% for task in tasks %}
+        &lt;li&gt;Task {{ task[&#39;id&#39;] }}: {{ task[&#39;title&#39;] }}&lt;/li&gt;
+        {% endfor %}
+        &lt;/ul&gt;
+    &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+</div>
+
+<p>The Jinja for-loop is very much like a regular python for-loop and behaves in much the same way. Here, it must be wrapped in the {% %} characters, and it must have a matching {% endfor %} (we no longer have a sensible way to keep track of indentation inside of html.</p>
+<p>For the most part, the line inside the for loop is essentially like a print statement. We could even write it like this, if we wanted:</p>
+<pre><code>{{ &quot;&lt;li&gt;Task &quot; + task[&#39;id&#39;] + &quot;: &quot; + task[&#39;title&#39;] + &quot;&lt;/li&gt;&quot; }}</code></pre>
+<p>This is valid, and uses standard string concatenation in python, but the first technique is preferable.</p>
+<p>Reload your page and use 'view source' in the browser to see what the generated html looks like. Compare it to our template.</p>
+<h2 id="chapter-7-a-brief-style-interlude">Chapter 7: A Brief Style Interlude</h2>
+<p>Before we move on, we should add style to our templates. Download Bootstrap and unpack it into your project. Specifically, you will need to take the 'bootstrap.css' file and put it in your static/css directory, and then take the two png files in the package and put them in your static/img directory. You can ignore all the other files for now.</p>
+<p>When you put a file in the static directory, you can access it in your browser directly. For example, if you put bootstrap.css in static/css, you can go to the following url to use it:</p>
+<pre><code>http://localhost:5000/static/css/bootstrap.css</code></pre>
+<p>Bootstrap.css defines a good set of default styles for us to base our visual style on, and so we want to include it in our template. You have to use a &lt;link&gt; tag inside our head tag that links to the css file. Look this up and try it on your own. Use the spoiler if you need additional help:</p>
+<div class="spoilers">
+
+<pre><code>&lt;head&gt;
+    &lt;title&gt;Tipsy&lt;/title&gt;
+    &lt;link rel=&quot;stylesheet&quot; href=&quot;/static/css/bootstrap.css&quot; type=&quot;text/css&quot;&gt;
+&lt;/head&gt;</code></pre>
+</div>
+
+<p>Reload the page and bask in the majestic beauty of bootstrap.</p>
+<p>Take some time to play around with your template and see how it interacts with bootstrap. Notice that your text butts up against your margins, which is, in a word, 'hideous'. Look at the Bootstrap <a href="http://twitter.github.com/bootstrap/getting-started.html">Getting Started Guide</a> and <a href="http://lmgtfy.com/?q=bootstrap+tutorial">other tutorials</a> for some hints on how to make your page look better.</p>
+<h2 id="chapter-8-in-which-we-discover-forms">Chapter 8: In Which We Discover Forms</h2>
+<p>The idea that urls are matched to function calls is really powerful. So far we have called functions and displayed the result of the function call. But to create new data in our system, we need to call functions and pass in input from our user. For example, in the new_task function, we need to get the task_title and user_id before calling that function. We'll simplify things for now and say that all tasks will be created and attached to user_id 1.</p>
+<p>Still, we need to get a title from the user. The usual way we collect data is with something called a form. It's like a paper form, a collection of fields to fill out. Let's make a new view attached to the url &quot;/new_task&quot;. It should render a template named &quot;new_task.html&quot;.</p>
+<div class="spoilers">
+
+<pre><code>@app.route(&quot;/new_task&quot;)
+def list_tasks():
+    return render_template(&quot;new_task.html&quot;)</code></pre>
+</div>
+
+<p>We need to create our new_task.html file in our templates directory. To preserve the visual style we developed, we can just copy list_tasks.html to our new file and replace the body.</p>
+<p>In our new file, we need to add a <a href="http://www.w3schools.com/tags/tag_form.asp">form</a>. A form is composed of fields, and each field has a label identifying it. The form should also have a submit button that the user can click when they're done entering data.</p>
+<p>Create a form with a text field and a submit button. The text field should have the name 'task_title'. You can safely ignore the 'action' for now, and set the 'method' to be 'POST'.</p>
+<div class="spoilers">
+
+<pre><code>&lt;form method=&quot;POST&quot;&gt;
+    &lt;input type=&quot;text&quot; name=&quot;task_title&quot;&gt;&lt;/input&gt;
+    &lt;input type=&quot;submit&quot;&gt;
+&lt;/form&gt;</code></pre>
+</div>
+
+<p>Reload your page and fill out the form and see what happens when you click the submit button.</p>
+<p>When you submit this form, nothing happens. It just reloads the page. That's because we haven't told the form what to <em>do</em> with the data it's collected. We can think of the workflow of forms in two steps:</p>
+<ol style="list-style-type: decimal">
+<li>Collect the data into a form</li>
+<li>Post (send) the data somewhere</li>
+</ol>
+<p>What we've built is the form where data can be collected. Now we have to send it somewhere for processing. We specify the location to send it to through the 'action' parameter of the form. We don't <em>have</em> anywhere to send it to just yet, so let's build that.</p>
+<h2 id="chapter-9-in-which-we-process-data-from-a-form">Chapter 9: In Which We Process Data From a Form</h2>
+<p>If we continue the idea that 'views' are functions that can be called by hitting a URL, we can build a function that processes our form data and creates a new Task in our database. It might look something like this.</p>
+<pre><code>def new_task(task_title):
+    db = model.connect_db()
+    # Assume that all tasks are attached to user 1.
+    task_id = model.new_task(db, task_title, 1)</code></pre>
+<p>If we were to wire up our function to a url, it might look like this:</p>
+<pre><code>@app.route(&quot;/save_task&quot;) 
+def new_task(task_title):
+    db = model.connect_db()
+    # Assume that all tasks are attached to user 1.
+    task_id = model.new_task(db, task_title, 1)</code></pre>
+<p>But, before you go and write this function, we have to discuss this glaring omission of detail. In this function, we receive a parameter called 'task_title', but we don't know how to get that parameter from the form we created in the previous chapter and into our function call.</p>
+<p>It turns out, there's no mechanism to do exactly what we're describing here. Instead, we need to use something called the 'request object' in Flask to get at this data. Modify your 'from flask import' line to look like this:</p>
+<pre><code>from flask import Flask, render_template, request, redirect</code></pre>
+<p>Let's add our view to our file, but modify it a little bit.</p>
+<pre><code>@app.route(&quot;/save_task&quot;, methods=[&quot;POST&quot;]) 
+def new_task():
+    task_title = request.form[&#39;task_title&#39;]
+    db = model.connect_db()
+    # Assume that all tasks are attached to user 1.
+    task_id = model.new_task(db, task_title, 1)
+    return &quot;Success!&quot;</code></pre>
+<p>Of note: we've changed our @app.route line to include the extra parameter, 'methods=[&quot;POST&quot;]' so far we've been treating all url access as the same, but this isn't strictly true. When you access a url, you can tell the url exactly <em>how</em> you're accessing it. By default, you 'get' a url. This is what happens when you type in a url into your browser. On the other hand, when you fill out a form and submit it, it 'posts' to a url. The form is posted, or sent to this url. This line we've added simply says that this url will respond to POSTed forms, rather than plain url requests.</p>
+<p>We've also added this line:</p>
+<pre><code>task_title = request.form[&#39;task_title&#39;]</code></pre>
+<p>Basically, in flask, the entire contents of a form are placed into a dictionary on the 'request' object. The request object is special and more or less represents the state of the user's browser when the request was made. One of the things it includes are the contents of forms.</p>
+<p>Now that we have a place to send the contents of the form, we have to tell the form where that place is. We can just use the url of our view as the action parameter in our form.</p>
+<div class="spoilers">
+
+<pre><code>&lt;form method=&quot;POST&quot; action=&quot;/save_task&quot;&gt;
+    &lt;input type=&quot;text&quot; name=&quot;task_title&quot;&gt;&lt;/input&gt;
+    &lt;input type=&quot;submit&quot;&gt;
+&lt;/form&gt;</code></pre>
+</div>
+
+<p>Earlier, we had a text input field named task_title in our form:</p>
+<pre><code>&lt;input type=&quot;text&quot; name=&quot;task_title&quot;&gt;&lt;/input&gt;</code></pre>
+<p>Once the form is submitted, the contents of this input field can be accessed by using its name as a key into the request.form dictionary. Try changing the dictionary key and the input field name and see how that works.</p>
+<p>One last thing, when we create a new task, we need to give some feedback to the user that they've successfully created a new entry in the app. While it's lovely that we announce our success, a more common pattern is to simply let the user see their new data in the context of the app. Here, we just send the browser back to the url for the big list of tasks (called a redirect).</p>
+<pre><code>@app.route(&quot;/save_task&quot;, methods=[&quot;POST&quot;]) 
+def new_task():
+    task_title = request.form[&#39;task_title&#39;]
+    db = model.connect_db()
+    # Assume that all tasks are attached to user 1.
+    task_id = model.new_task(db, task_title, 1)
+    return redirect(&quot;/tasks&quot;)</code></pre>
+<h2 id="chapter-10-in-which-we-explore-on-our-own">Chapter 10: In Which We Explore on Our Own</h2>
+<p>If all went well, you have a very rudimentary tasklist app that you can work with as a framework. However, it's still missing a lot of features</p>
+<ul>
+<li>The ability to mark a task as done (forms)</li>
+<li>The ability to log in as a particular user (forms, sessions)</li>
+<li>The ability to edit a task title (forms)</li>
+<li>The ability to split completed tasks off from incomplete tasks (Jinja templates)</li>
+<li>etc...</li>
+</ul>
+<p>Compare this list with your earlier use case list and identify the next features you'd like to complete. You've seen almost all the components you need to do these things, with the exception of sessions. Try to piece that knowledge together to fill out the rest of your app.</p>
+<h2 id="epilogue">Epilogue</h2>
+<p>This is very rudimentary and we're intentionally doing things in a naive way to prevent information overload while exposing all the underpinnings of modern web development. In a later exercise, we'll take what we've built here and rebuild it in a more idiomatic fashion.</p>
 </body>
 </html>

@@ -20,6 +20,8 @@
 <li><a href="http://www.python.org">Python 2.6-ish</a></li>
 </ul>
 <p>This tutorial is formatted somewhat in the manner of a choose-your-own-adventure. If you're feeling adventurous, you may choose to ignore the supplied hints and strike out on your own as you see fit.</p>
+<h2 id="chapter-0-in-which-we-build-our-git-repository">Chapter 0: In Which We Build Our Git Repository</h2>
+<p>A pre-made repository is available for you at http://www.github.com/chriszf/tipsy/. If you choose to use it, fork then clone it. On the other hand, you are welcome to make your own repository from scratch.</p>
 <h2 id="chapter-1-in-which-we-think-about-things">Chapter 1: In Which We Think About Things</h2>
 <p>The approach to this project, according to Zebulon's Grand Unified Theory of Application Development, is to first identify the nouns that make up the model. In this case, we don't have a pre-existing project to extract our nouns from, so we'll have to use our imaginations. We start by identifying 'use cases', or descriptions of how a user interacts with our software. We don't necessarily need to understand all the details at this time, just a high level description to help plan our project.</p>
 <p>Since our application is a task list, here are some archetypical use cases:</p>
@@ -73,9 +75,10 @@ Notice the addition of the user_id field to represent the relation.
 
 <p>The next thing to do is take our definition and build database tables from it. You can use the <a href="http://robotocracy.com/sql/">sql diagram tool</a> from before to generate the sql, or use a <a href="http://souptonuts.sourceforge.net/readme_sqlite_tutorial.html">sqlite tutorial</a> to create the table generation script yourself.</p>
 <p>Remember the naming conventions from before: the table name is a capitalized, plural version of the thing it represents.</p>
-<p>If you need some help, we've provided the script for you here:</p>
+<p>Save your script in a file named schema.sql. If you need some help, we've provided the script for you here:</p>
 <div class="spoilers">
-
+    
+<p>-- schema.sql</p>
 <pre><code>create table Users (
     id INTEGER PRIMARY KEY,
     email VARCHAR(64),
@@ -91,5 +94,54 @@ create table Tasks (
 );</code></pre>
 </div>
 
+<p>Load your sql database using the following command (make sure you're in your repository directory).</p>
+<pre><code>sqlite3 tipsy.db &lt; schema.sql</code></pre>
+<h2 id="chapter-3-in-which-we-feed-some-crud-to-a-snake">Chapter 3: In Which We Feed Some Crud to a Snake</h2>
+<p>We're going to write the <a href="http://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</a> access methods to our model, or at least, parts of it. We'll put these methods in a file called model.py.</p>
+<p>Generally, when we write database access methods (functions, whatever), we want to start with setup and teardown functions to connect to our database, then shut down the connection cleanly when we're done.</p>
+<p>We'll use the setup function from the Flaskr exercise:</p>
+<pre><code>&quot;&quot;&quot;
+model.py
+&quot;&quot;&quot;
+
+import sqlite3
+
+def connect_db():
+    return sqlite3.connect(&quot;tipsy.db&quot;)</code></pre>
+<p>Given a database 'handle', we can make queries against our database. Right now the database is empty, so we need to write a method to put some data in. Although it's not obvious why yet, we need a mechanism to get the id of the most recent data we put in.</p>
+<pre><code>def new_user(db, self, email, password, name):
+    c = db.cursor()
+    query = &quot;&quot;&quot;INSERT INTO Users VALUES (NULL, ?, ?, ?)&quot;&quot;&quot;
+    result = c.execute(query, (email, password, name))
+    db.commit()
+
+    return result.lastrowid</code></pre>
+<p>If you don't remember the syntax here, review the <a href="https://github.com/chriszf/sql_lesson">sql lesson</a> before moving on.</p>
+<p>Next, we're going to add a function called 'authenticate' which, given a username and password, returns a dictionary of a user's fields pulled from the database, and a <em>None</em> if the credentials do not match. Try to implement this yourself, but feel free to use our reference implementation:</p>
+<div class="spoilers">
+
+<pre><code>def authenticate(db, email, password):
+    c = db.cursor()
+    query = &quot;&quot;&quot;SELECT * from Users WHERE email=? AND password=?&quot;&quot;&quot;
+    c.execute(query, (email, password))
+    result = c.fetchone()
+    if result:
+        fields = [&quot;id&quot;, &quot;email&quot;, &quot;password&quot;, &quot;username&quot;]
+        return dict(zip(fields, result))
+
+    return None
+
+# If you use our implementation, make sure to
+# look up the zip function</code></pre>
+</div>
+
+<p>On your own, implement the following methods:</p>
+<ul>
+<li>new_task(db, title, user_id) -- Created a new task, returns the id of the newly created row. Make sure to populate the created_at field.</li>
+<li>get_user(db, user_id) -- Fetch a user's record based on his id. Return the user as a dictionary, like our authenticate method.</li>
+<li>complete_task(db, task_id) -- Marks a task as being complete, setting the completed_at field.</li>
+<li>get_tasks(db, user_id) -- Gets all the tasks for the given user id. Returns all the tasks in the system if no user_id is given. Returns them as a list of dictionaries.</li>
+<li>get_task(db, task_id) -- Get a single task, given its id. Return the task as a dictionary as above in the authenticate method.</li>
+</ul>
 </body>
 </html>

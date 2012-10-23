@@ -13,6 +13,10 @@ Things we will need:
 
 This tutorial is formatted somewhat in the manner of a choose-your-own-adventure. If you're feeling adventurous, you may choose to ignore the supplied hints and strike out on your own as you see fit. 
 
+Chapter 0: In Which We Build Our Git Repository
+-----------------------------------------------
+A pre-made repository is available for you at http://www.github.com/chriszf/tipsy/. If you choose to use it, fork then clone it. On the other hand, you are welcome to make your own repository from scratch.
+
 Chapter 1: In Which We Think About Things
 -----------------------------------------
 The approach to this project, according to Zebulon's Grand Unified Theory of Application Development, is to first identify the nouns that make up the model. In this case, we don't have a pre-existing project to extract our nouns from, so we'll have to use our imaginations. We start by identifying 'use cases', or descriptions of how a user interacts with our software. We don't necessarily need to understand all the details at this time, just a high level description to help plan our project.
@@ -68,9 +72,10 @@ The next thing to do is take our definition and build database tables from it. Y
 
 Remember the naming conventions from before: the table name is a capitalized, plural version of the thing it represents.
 
-If you need some help, we've provided the script for you here:
+Save your script in a file named schema.sql. If you need some help, we've provided the script for you here:
 
 <div class="spoilers">
+    -- schema.sql
 
     create table Users (
         id INTEGER PRIMARY KEY,
@@ -87,3 +92,64 @@ If you need some help, we've provided the script for you here:
     );
 
 </div>
+
+Load your sql database using the following command (make sure you're in your repository directory).
+
+    sqlite3 tipsy.db < schema.sql
+
+Chapter 3: In Which We Feed Some Crud to a Snake
+------------------------------------------------
+We're going to write the [CRUD](http://en.wikipedia.org/wiki/Create,_read,_update_and_delete) access methods to our model, or at least, parts of it. We'll put these methods in a file called model.py.
+
+Generally, when we write database access methods (functions, whatever), we want to start with setup and teardown functions to connect to our database, then shut down the connection cleanly when we're done.
+
+We'll use the setup function from the Flaskr exercise:
+
+    """
+    model.py
+    """
+
+    import sqlite3
+
+    def connect_db():
+        return sqlite3.connect("tipsy.db")
+
+Given a database 'handle', we can make queries against our database. Right now the database is empty, so we need to write a method to put some data in. Although it's not obvious why yet, we need a mechanism to get the id of the most recent data we put in.
+
+    def new_user(db, self, email, password, name):
+        c = db.cursor()
+        query = """INSERT INTO Users VALUES (NULL, ?, ?, ?)"""
+        result = c.execute(query, (email, password, name))
+        db.commit()
+
+        return result.lastrowid
+
+If you don't remember the syntax here, review the [sql lesson](https://github.com/chriszf/sql_lesson) before moving on.
+
+Next, we're going to add a function called 'authenticate' which, given a username and password, returns a dictionary of a user's fields pulled from the database, and a _None_ if the credentials do not match. Try to implement this yourself, but feel free to use our reference implementation:
+
+<div class="spoilers">
+
+    def authenticate(db, email, password):
+        c = db.cursor()
+        query = """SELECT * from Users WHERE email=? AND password=?"""
+        c.execute(query, (email, password))
+        result = c.fetchone()
+        if result:
+            fields = ["id", "email", "password", "username"]
+            return dict(zip(fields, result))
+
+        return None
+
+    # If you use our implementation, make sure to
+    # look up the zip function
+
+</div>
+
+On your own, implement the following methods:
+
+* new\_task(db, title, user\_id) -- Created a new task, returns the id of the newly created row. Make sure to populate the created\_at field.
+* get\_user(db, user\_id) -- Fetch a user's record based on his id. Return the user as a dictionary, like our authenticate method.
+* complete\_task(db, task\_id) -- Marks a task as being complete, setting the completed\_at field.
+* get\_tasks(db, user\_id) -- Gets all the tasks for the given user id. Returns all the tasks in the system if no user\_id is given. Returns them as a list of dictionaries.
+* get\_task(db, task\_id) -- Get a single task, given its id. Return the task as a dictionary as above in the authenticate method.

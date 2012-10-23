@@ -11,6 +11,17 @@ h1, h2{
     border-bottom: 1px solid #c9c9c9;
 }
 
+h2 {
+    color: #005555;
+}
+
+body>pre, div.spoilers {
+    border: 2px solid #ccc;
+    background-color: #eee;
+    padding-bottom: 15px;
+    padding-left: 5px;
+    padding-top: 10px;
+}
 
 div.spoilers {
     border: 2px solid #ccc;
@@ -35,3 +46,4 @@ div.spoilers:hover {
 div.spoilers:hover:before {
     display: None;
 }
+

@@ -28,6 +28,68 @@
 <li>A user must be able to add a new task</li>
 <li>A user should be able to mark a task as complete</li>
 </ul>
-<p><strong>Take a few minutes to add to this list. It may help to open a new planning document.</strong></p>
+<p><strong>Take a few minutes to add to this list. It may help to open a new planning document to keep track, since we don't have a tasklist yet.</strong></p>
+<p>From this list, we can identify the following nouns and attributes:</p>
+<ul>
+<li><strong>User</strong>
+<ul>
+<li>id</li>
+<li>email</li>
+<li>password</li>
+<li>name</li>
+</ul></li>
+<li><strong>Task</strong>
+<ul>
+<li>id</li>
+<li>title</li>
+<li>created_at</li>
+<li>completed_at</li>
+</ul></li>
+</ul>
+<p>This is a good starting point, and we can always add more later.</p>
+<p>One thing we need to do next is to identify the relationships between our nouns. We can say that a User <em>has many</em> Tasks, and at the same time, a Task <em>belongs to</em> a User.</p>
+<h2 id="chapter-2-in-which-we-build-our-database">Chapter 2: In Which We Build Our Database</h2>
+<p>Now, we almost have enough information to construct our tables. We have our attributes, our nouns, and our relationships, but we still need to declare what column types these attributes will be. Try to do this yourself, and hover over the spoiler block below if you need hints.</p>
+<div class="spoilers">
+<ul>
+<li><strong>User</strong>
+<ul>
+<li>id - Integer, Primary Key</li>
+<li>email - Varchar(64)</li>
+<li>password - Varchar(64)</li>
+<li>name - Varchar(64)</li>
+</ul></li>
+<li><strong>Task</strong>
+<ul>
+<li>id - Integer, Primary Key</li>
+<li>title - Varchar(64)</li>
+<li>created_at - Datetime</li>
+<li>completed_at - Datetime</li>
+<li>user_id - Integer</li>
+</ul></li>
+</ul>
+Notice the addition of the user_id field to represent the relation.
+</div>
+
+<p>The next thing to do is take our definition and build database tables from it. You can use the <a href="http://robotocracy.com/sql/">sql diagram tool</a> from before to generate the sql, or use a <a href="http://souptonuts.sourceforge.net/readme_sqlite_tutorial.html">sqlite tutorial</a> to create the table generation script yourself.</p>
+<p>Remember the naming conventions from before: the table name is a capitalized, plural version of the thing it represents.</p>
+<p>If you need some help, we've provided the script for you here:</p>
+<div class="spoilers">
+
+<pre><code>create table Users (
+    id INTEGER PRIMARY KEY,
+    email VARCHAR(64),
+    password VARCHAR(64),
+    name VARCHAR(64)
+);
+create table Tasks (
+    id INTEGER PRIMARY KEY,
+    title VARCHAR(64),
+    created_at DATETIME,
+    completed_at DATETIME,
+    user_id INTEGER
+);</code></pre>
+</div>
+
 </body>
 </html>

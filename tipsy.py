@@ -12,7 +12,9 @@ def index():
 
 @app.route("/tasks")
 def list_tasks():
-    return render_template("list_tasks.html")
+    db = model.connect_db()
+    tasks_from_db = model.get_tasks(db, None)
+    return render_template("list_tasks.html", tasks=tasks_from_db)
 
 if __name__ == "__main__":
     app.run(debug=True)

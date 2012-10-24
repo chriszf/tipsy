@@ -329,7 +329,7 @@ Renders this in the html:
 <div class="spoilers">
 
 <pre><code>@app.route(&quot;/new_task&quot;)
-def list_tasks():
+def new_tasks():
     return render_template(&quot;new_task.html&quot;)</code></pre>
 </div>
 
@@ -353,13 +353,13 @@ def list_tasks():
 <p>What we've built is the form where data can be collected. Now we have to send it somewhere for processing. We specify the location to send it to through the 'action' parameter of the form. We don't <em>have</em> anywhere to send it to just yet, so let's build that.</p>
 <h2 id="chapter-9-in-which-we-process-data-from-a-form">Chapter 9: In Which We Process Data From a Form</h2>
 <p>If we continue the idea that 'views' are functions that can be called by hitting a URL, we can build a function that processes our form data and creates a new Task in our database. It might look something like this.</p>
-<pre><code>def new_task(task_title):
+<pre><code>def save_task(task_title):
     db = model.connect_db()
     # Assume that all tasks are attached to user 1.
     task_id = model.new_task(db, task_title, 1)</code></pre>
 <p>If we were to wire up our function to a url, it might look like this:</p>
 <pre><code>@app.route(&quot;/save_task&quot;) 
-def new_task(task_title):
+def save_task(task_title):
     db = model.connect_db()
     # Assume that all tasks are attached to user 1.
     task_id = model.new_task(db, task_title, 1)</code></pre>
@@ -368,7 +368,7 @@ def new_task(task_title):
 <pre><code>from flask import Flask, render_template, request, redirect</code></pre>
 <p>Let's add our view to our file, but modify it a little bit.</p>
 <pre><code>@app.route(&quot;/save_task&quot;, methods=[&quot;POST&quot;]) 
-def new_task():
+def save_task():
     task_title = request.form[&#39;task_title&#39;]
     db = model.connect_db()
     # Assume that all tasks are attached to user 1.
@@ -392,7 +392,7 @@ def new_task():
 <p>Once the form is submitted, the contents of this input field can be accessed by using its name as a key into the request.form dictionary. Try changing the dictionary key and the input field name and see how that works.</p>
 <p>One last thing, when we create a new task, we need to give some feedback to the user that they've successfully created a new entry in the app. While it's lovely that we announce our success, a more common pattern is to simply let the user see their new data in the context of the app. Here, we just send the browser back to the url for the big list of tasks (called a redirect).</p>
 <pre><code>@app.route(&quot;/save_task&quot;, methods=[&quot;POST&quot;]) 
-def new_task():
+def save_task():
     task_title = request.form[&#39;task_title&#39;]
     db = model.connect_db()
     # Assume that all tasks are attached to user 1.
@@ -410,5 +410,8 @@ def new_task():
 <p>Compare this list with your earlier use case list and identify the next features you'd like to complete. You've seen almost all the components you need to do these things, with the exception of sessions. Try to piece that knowledge together to fill out the rest of your app.</p>
 <h2 id="epilogue">Epilogue</h2>
 <p>This is very rudimentary and we're intentionally doing things in a naive way to prevent information overload while exposing all the underpinnings of modern web development. In a later exercise, we'll take what we've built here and rebuild it in a more idiomatic fashion.</p>
+<!-- Notes: cursors are confusing zip function needs docs -->
+
+<p><a href="stage1.html">Next Step</a></p>
 </body>
 </html>

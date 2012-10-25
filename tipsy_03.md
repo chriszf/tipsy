@@ -249,3 +249,198 @@ The simplification of **new_task**, on the other hand, requires a little more th
 Chapter 4: In Which the Old Ones Resurface
 ------------------------------------------
 It's been some time now since we've talked about objects, so let's talk about objects.
+
+Everything we've done so far was to expose you to the delights (horrors) of working with a wonderful (migraine-inducing) database (database). In doing so, we've done a couple of things which aren't bad per se, but can be considered 'code smells', and would have been better accomplished using objects.
+
+Take our 'user' dictionary that represents my row:
+
+    {"id": 1, "email": "c@hackbright.com", "password": "securepassword", "name": "Christian"}
+
+We can extrapolate this to say that the archetypal dictionary for user records contains the following keys
+
+    id
+    email
+    password
+    name
+
+And that every row that we extract from our database should use this format. Additionally, we have a list of all the column names for this table.
+
+    USER_COLS = ["id", "email", "password", "username"]
+
+Furthermore, we have a number of functions related specifically to these user rows, either extracting them or inserting them.
+
+    new_user
+    get_user
+    authenticate
+
+If only there was a construct we could use that could use that could organize both code and data into a single place...
+
+Oh.
+
+So this is really an excellent place for objects, because we can pack everything together into one tidy bundle. Let's go about converting the user dictionary into a class. First, we start by specifying the **\_\_init\_\_** method.
+
+    class User(object):
+        def __init__(self, id, email, password, name):
+            self.id = id
+            self.email = email
+            self.password = password
+            self.name = name
+
+If we stopped here, we could change our **make_user** function to look like this:
+
+    def make_user(row):
+        return User(row[0], row[1], row[2], row[3])
+
+And already, this would be a pretty great boon. It would cut down on some awkward typing in our templates. For example:
+
+    <h1>Welcome back {{ user['name'] }}!</h1>
+
+    could become
+
+    <h1>Welcome back {{ user.name }}!</h1>
+
+Even though they're functionally identical, I prefer the syntax of the latter.
+
+Still, this is thinking pretty small. We want to think big with objects. We want to embrace _encapsulation_. We want to put every single function related to User data onto our User class. Too bad it's not as simple as just putting our methods directly inside the class definition.
+
+Oh wait, it is.
+
+    class User(object):
+        # init omitted for brevity
+
+        # This is formerly the new_user function
+        @classmethod
+        def new(cls, db, email, password, name): 
+            vals = [email, password, name]
+            return insert_into_db(db, "Users", USER_COLS, vals)
+           
+There is a slight change here. First, we've changed the name. To call this method, we do the following:
+
+    user_id = User.new(db, "c@hackbright.com", "securepassword", "Christian")
+
+It seemed redundant to type in **User.new_user**. The second thing is the addition of the @classmethod decorator and the cls parameter.
+
+Remember that a normal instance method is defined with 'self' as being the first parameter to the method, to give the method a mechanism for accessing the instance that it lives on. Here, we have a _class method_. It's a method that's _related_ to Users, but not to a _specific_ user. As an example, the following wouldn't make much sense:
+
+    >>> me = User(1, "c@hackbright.com", "password", "Christian")
+    >>> me.new("d@hackbright.com", "password", "David")
+
+Here, we create a new instance that represents _me_, and then somehow delegate the task of creating a new record for David to that instance. No, the act of creating a new record in our database should fall squarely on the shoulders of the class User itself. Again, it's related to Users, but not to specific users.
+
+A class method is not too dissimilar from an instance method. Instead of being attached to an instance, it's attached to a class. And in the same way that an instance method frequently needs a way to reference the instance it's attached to, the class method needs a reference to the class it's attached to, and that's the 'cls' parameter.
+
+Why would we need that? Well, we have something called a _class attribute_, which is a variable that's available to all instances of a given class. Frequently, it's a constant:
+
+    class Cat(object):
+        NUM_LEGS = 4
+
+With this, all Cat instances will have a .NUM\_LEGS attribute that will always equal 4. We can also do the following:
+
+    >>> print Cat.NUM_LEGS
+    4
+
+There is one variable we have here that makes sense to turn into a class attribute. Review the opening paragraphs of the chapter to see if anything fits the description.
+
+    CUE JEOPARDY THEME MUSIC
+
+That's right, we have the USER\_COLS variable, which will be the same for every single user object. We can update our class definition to include the variable.
+
+    class User(object):
+        COLS = ["id", "email", "password", "username"]
+        TABLE_NAME = "Users"
+        # methods omitted for brevity
+        
+Again, accessing the list of columns by typing User.USER\_COLS seemed redundant, so we renamed it. While we were at it, we added the table name to the list of class attributes. This is another thing that's going to be common for all instances of the User class: the name of the database table it's attached to. Now that our class has all these class attributes, we can use them in our class method. Try to determine the syntax for this yourself.
+
+<div class="spoilers">
+
+    class User(object):
+        COLS = ["id", "email", "password", "username"]
+        TABLE_NAME = "Users"
+
+        @classmethod
+        def new(cls, db, email, password, name): 
+            vals = [email, password, name]
+            return insert_into_db(db, cls.TABLE_NAME, cls.COLS, vals)
+</div>
+
+One thing to note, class attributes are not limited to access by the class it lives on. We can always refer to the class attributes from _outside_ a class method by using the full class name:
+
+    >>> print User.TABLE_NAME
+    Users
+
+Now, change the authenticate method from being a stand-alone function to a class method in the same way. It will be slightly tricky because you'll need to create an instance of the User class from _inside_ a method _on_ the User class.
+
+<div class="spoilers">
+
+    @classmethod
+    def authenticate(cls, db, email, password):
+        c = db.cursor()
+        query = """SELECT * from %s WHERE email=? AND password=?"""%(cls.TABLE_NAME)
+        c.execute(query, (email, password))
+        result = c.fetchone()
+        if result:
+            return cls(*result)
+            # the asterisk in the line above makes it equivalent
+            # to the line below:
+            # return cls(result[0], result[1], result[2], result[3])
+        return None
+</div>
+
+For the next step, try to convert all of the task-related methods and variables into a single Task class. Since the **complete_task** function works on a _specific_ task, it's a good candidate for turning into an instance method, if you can figure out how to fit that into the workflow. You'll need to update all of your views to use the classes. You'll also need to update your templates to use these new classes. For the most part, that just means you can change lines like this:
+
+    <li>{{ task['title'] }}</li>
+
+    to
+
+    <li>{{ task.title }}</li>
+
+Chapter 5: In Which a Challenge Is Issued Without Guidance
+----------------------------------------------------------
+One thing which we glazed over are the relationships between the tables. That information is present in the .user\_id attributes in our tables, but it would be nice if we made the relationship more concrete.
+
+Since tasks _belong_ to a user, it makes sense that rather than ask the Task class to return all the Tasks that match a user, we should be asking a User instance for all of the tasks that belong to it.
+
+    >>> me = User.get(db, 1)
+    >>> print me.get_tasks()
+    ["Wash the dog", "Wash the cat", "Wash the fish?!"]
+
+Rewrite your **get_tasks** function to be a part of the User class, rather than the Task class.
+
+Epilogue: In Which We Wonder What All the Fuss Over ORMs Is About
+-----------------------------------------------------------------
+Writing tedious code builds character, and so far, we've written a fair amount of tedious <br>database &lt;&mdash;&gt; object code. If you don't see it, trust me that objects are far more convenient here than dictionaries, so it was worthwhile.
+
+Still, it _was_ tedious, there is no doubt, and there's a lot of boilerplate. Every place we have a sql query, there was some way to automate part or all of it based on class attributes, like the table name, or the field list.
+
+An ORM is a piece of software that does exactly exactly this automation. It allows you to declare a class like this:
+
+    # This won't work without the right ORM module
+    class User(db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        username = db.Column(db.String(80), unique=True)
+        email = db.Column(db.String(120), unique=True)
+        password = db.Column(db.String(120))
+
+        def __init__(self, username, email, password):
+            self.username = username
+            self.email = email
+            self.password = password
+
+This particular ORM can look at our class definition and _construct a sql table from it_. This means no more making a schema.sql by hand. It also lets us do things like this:
+
+    me = User.get(1)    # get user by id from the db
+    me.email = "zebulon@hackbrightacademy.com"
+    me.save()           # save to the database
+
+In this bit of code, the ORM automatically generates the SQL to create a SELECT query to pull a record out of the database, then turn it into a class. After we change the attributes on the class to our liking, it lets us call a .save() method, which automatically creates the UPDATE statement that does the correct thing and commits it to the database. It's like magic!
+
+The specific kind of magic here is alchemy (actually, [SQLAlchemy](http://www.sqlalchemy.org/)), which is appropriate, given how it transmutes database records into objects and backs. If you would like to learn more about it, and how to integrate it with flask, check out the [quickstart guide](http://packages.python.org/Flask-SQLAlchemy/quickstart.html).
+
+The last step here is to replace our model file entirely with an ORM-enabled one and rejoice in the fact that except in rare cases, you don't have to mess with constructing SQL queries by hand anymore.
+
+And that's it. You're now a web developer. We can all go home.
+
+Or can we?
+
+#### To be continued...

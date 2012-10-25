@@ -161,14 +161,15 @@ def set_up_db():
     g.db = model.connect_db()</code></pre>
 <p>And we can update the matching line in our view to use our special global:</p>
 <pre><code>task_from_db = model.get_task(g.db, id)</code></pre>
-<p>While we're here, we can add a <em><em>teardown_request</em></em> function that cleans up after each view. Even though it isn't strictly necessary in this case, we can close our connection to our database when we're done using it. The method on the <em>db</em> object is <strong>close</strong>.</p>
+<p>While we're here, we can add a <strong><em>teardown_request</em></strong> function that cleans up after each view. Even though it isn't strictly necessary in this case, we can close our connection to our database when we're done using it. The method on the <em>db</em> object is <strong>close</strong>.</p>
 <div class="spoilers">
 
 <pre><code>@app.teardown_request
-def disconnect_db():
+def disconnect_db(e):
     g.db.close()</code></pre>
 </div>
 
+<p>The function we specify as the teardown request gets called after <em>every</em> view. It gets called even if some error occurs in the view that isn't handled. The <strong>disconnect_db</strong> function needs to be able to receive this error. In our case, we don't care if an error occurs, so we can just receive it and ignore it.</p>
 <p>Simplify the rest of the views and make sure everything still works.</p>
 <h2 id="chapter-3-in-which-we-cure-our-app-of-amnesia">Chapter 3: In Which We Cure Our App of Amnesia</h2>
 <p>Web servers are 'stateless'. Our app just blindly executes the view that we request. We can also jump from view to view with impunity: at no point does it remember, nor does it care, what the previous view you looked at was. Or if you even looked at a view. Essentially, our application has no memory of previous actions.</p>
@@ -210,12 +211,12 @@ def authenticate():
     session[&#39;user_id&#39;] = user_id</code></pre>
 </div>
 
-<p>Now we have a target for our form from before. Go back and modify the form in <em>login.html</em> to post to our <em>authenticate</em> view as the action.</p>
+<p>Now we have a target for our form from before. Go back and modify the form in <em>login.html</em> to post to our <em>authenticate</em> view as the action. Remember to use the <strong>url_for</strong> function.</p>
 <div class="spoilers">
 
 <pre><code>{% extends &quot;layout.html&quot; %}
 {% block body %}
-&lt;form method=&quot;POST&quot; action=&quot;{{ url_for(&quot;authenticate&quot;) }}&gt;
+&lt;form method=&quot;POST&quot; action=&quot;{{ url_for(&quot;authenticate&quot;) }}&quot;&gt;
 &lt;input type=&quot;string&quot; name=&quot;email&quot;&gt;
 &lt;input type=&quot;password&quot; name=&quot;password&quot;&gt;
 &lt;input type=&quot;submit&quot;&gt;

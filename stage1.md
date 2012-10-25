@@ -212,14 +212,16 @@ And we can update the matching line in our view to use our special global:
 
     task_from_db = model.get_task(g.db, id)
 
-While we're here, we can add a *_teardown\_request_* function that cleans up after each view. Even though it isn't strictly necessary in this case, we can close our connection to our database when we're done using it. The method on the *db* object is __close__.
+While we're here, we can add a **_teardown\_request_** function that cleans up after each view. Even though it isn't strictly necessary in this case, we can close our connection to our database when we're done using it. The method on the *db* object is __close__.
 
 <div class="spoilers">
 
     @app.teardown_request
-    def disconnect_db():
+    def disconnect_db(e):
         g.db.close()
 </div>
+
+The function we specify as the teardown request gets called after _every_ view. It gets called even if some error occurs in the view that isn't handled. The **disconnect_db** function needs to be able to receive this error. In our case, we don't care if an error occurs, so we can just receive it and ignore it.
 
 Simplify the rest of the views and make sure everything still works.
 

@@ -121,7 +121,12 @@ def view_task(id):</code></pre>
 &lt;div class=&quot;tasklist&quot;&gt;
     &lt;ul&gt;
     {% for task in tasks %}
-    &lt;li&gt;&lt;a href=&quot;/task/{{task[&#39;id&#39;]}}&quot;&gt;Task {{ task[&#39;id&#39;] }}&lt;/a&gt;: {{ task[&#39;title&#39;] }}{% if task[&#39;completed_at&#39;] %} &amp;mdash; Completed{% endif %}&lt;/li&gt;
+    &lt;li&gt;
+        &lt;a href=&quot;{{ url_for(&quot;view_task&quot;, id=task[&#39;id&#39;]) }}&quot;&gt;Task {{ task[&#39;id&#39;] }}&lt;/a&gt;:
+            {{ task[&#39;title&#39;] }}
+            {% if task[&#39;completed_at&#39;] %} &amp;mdash; Completed
+            {% endif %}
+    &lt;/li&gt;
     {% endfor %}
     &lt;/ul&gt;
 &lt;/div&gt;
@@ -156,7 +161,7 @@ def set_up_db():
     g.db = model.connect_db()</code></pre>
 <p>And we can update the matching line in our view to use our special global:</p>
 <pre><code>task_from_db = model.get_task(g.db, id)</code></pre>
-<p>While we're here, we can add a <strong>teardown_request</strong> function that cleans up after each view. Even though it isn't strictly necessary in this case, we can close our connection to our database when we're done using it. The method on the <em>db</em> object is <strong>close</strong>.</p>
+<p>While we're here, we can add a <em><em>teardown_request</em></em> function that cleans up after each view. Even though it isn't strictly necessary in this case, we can close our connection to our database when we're done using it. The method on the <em>db</em> object is <strong>close</strong>.</p>
 <div class="spoilers">
 
 <pre><code>@app.teardown_request
@@ -205,6 +210,19 @@ def authenticate():
     session[&#39;user_id&#39;] = user_id</code></pre>
 </div>
 
+<p>Now we have a target for our form from before. Go back and modify the form in <em>login.html</em> to post to our <em>authenticate</em> view as the action.</p>
+<div class="spoilers">
+
+<pre><code>{% extends &quot;layout.html&quot; %}
+{% block body %}
+&lt;form method=&quot;POST&quot; action=&quot;{{ url_for(&quot;authenticate&quot;) }}&gt;
+&lt;input type=&quot;string&quot; name=&quot;email&quot;&gt;
+&lt;input type=&quot;password&quot; name=&quot;password&quot;&gt;
+&lt;input type=&quot;submit&quot;&gt;
+&lt;/form&gt;
+{% endblock %}</code></pre>
+</div>
+
 <p>After we've successfully authenticated, we can modify any user-sensitive views to check for the presence of a user id in the session before proceeding. Modify the <em>list_tasks</em> view to check for a user id before querying the database.</p>
 <div class="spoilers">
 
@@ -216,8 +234,10 @@ def list_tasks():
     return render_template(&quot;list_tasks.html&quot;, tasks=tasks_from_db)</code></pre>
 </div>
 
+
 <h2 id="epilogue-in-which-we-are-satisfied-with-our-work">Epilogue: In Which We Are Satisfied With Our Work</h2>
 <p>Our app is pretty complete at this point in terms of functionality. Now is a good time to import any features from the first version of your app into the newer version, with the new constraints.</p>
 <p>There are still improvements we can make, mostly related to the model, and <em>many</em> improvements we can make with regards to error checking (hint: we didn't do any), but we now have the tools to build a flask webapp idiomatically.</p>
+<p><a href="tipsy_03.html">Next Section</a></p>
 </body>
 </html>

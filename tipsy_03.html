@@ -1,0 +1,215 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <link rel="stylesheet" href="normalize.css" type="text/css" />
+  <link rel="stylesheet" href="tutorial.css" type="text/css" />
+</head>
+<body>
+<h1 id="tipsy-being-a-tutorial-on-the-ways-of-flask-act-three">Tipsy: Being a Tutorial on the Ways of Flask, Act Three</h1>
+<p>Complete the <a href="index.html">first</a> and <a href="stage1.html">second</a> parts before doing this section.</p>
+<h2 id="chapter-0-in-which-we-wonder-why-were-still-here">Chapter 0: In Which We Wonder Why We're Still Here</h2>
+<p>At this point, we have most of the idiomatic methods for building an application with Flask securely under our belts, with but few things remaining:</p>
+<ol style="list-style-type: decimal">
+<li>The <a href="http://flask.pocoo.org/docs/patterns/flashing/">'message flash'</a></li>
+<li>Simple <a href="http://flask.pocoo.org/docs/patterns/wtforms/">form validation</a></li>
+</ol>
+<p>Neither of these things is especially difficult (nor are they necessary at this point), and can be learned in the comfort of your own home, next to a fire, sipping hot cocoa or a beverage of your own choosing. No, friends. Today, we're here to address the looming monstrosity that is our model.py file.</p>
+<p>As we mentioned before, the best programmers are lazy and will avoid repetition at all costs. Alas, our model.py file is riddled with repetition. The good news is that it's repetition of a sort that can be dissolved away through the arcane incantations of object-oriented programming. Only, the path to success here is fraught with perils and terrors of a sort beyond the imaginings of man. Tread ye lightly, for here monsters dwell.</p>
+<pre><code>Note: There are no monsters in our model.py file.</code></pre>
+<p>Actually, it turns out our model.py file isn't quite that bad, but the solutions to clean it up are all a bit on the tricky side. We'll rewrite it two ways, the first being a functional approach, and the second being object-oriented. The latter is the preferred mechanism. Afterwards, we'll introduce the mystical 'ORM' that we've talked about so much, and see how it fits in to solve all of our problems.</p>
+<h2 id="chapter-1-in-which-we-perform-acrobatics-with-functions">Chapter 1: In Which We Perform Acrobatics With Functions</h2>
+<p>Reptition is the bane of the lazy, and we should all strive to be as lazy as possible. If you ever find yourself doing something twice and think, &quot;ugh, this would be annoying to do a third time,&quot; you might consider refactoring your code. Consider the following excerpt from our model file:</p>
+<pre><code>def get_user(db, user_id):                                 
+    c = db.cursor()
+    query = &quot;&quot;&quot;SELECT * from Users WHERE id = ?&quot;&quot;&quot;
+    c.execute(query, (user_id,))
+    user_row = c.fetchone()
+    if user_row:
+        return make_user(user_row)
+    return None
+
+def get_task(db, task_id):
+    c = db.cursor()
+    query = &quot;&quot;&quot;SELECT * from Tasks WHERE id = ?&quot;&quot;&quot;
+    c.execute(query, (task_id,))
+    task_row = c.fetchone()
+    if task_row:
+        return make_task(task_row)
+    return None</code></pre>
+<p>I assure you, if you put these two function definitions side-by-side, you would find that they look nearly identical, a near copy-paste. Paste them into your editor and try for yourself, just to be really sure. These two functions are the perfect candidate for <em>abstraction</em>. In the process of abstraction, we extract the common aspects of these two functions and move them into a separate function. This simplifies our original functions further, and gives us a basis for extending our program without resorting to copying and pasting again.</p>
+<pre><code>def common_bits(id):
+    # Do something super clever
+    pass
+
+def get_user(db, user_id):                                 
+    return common_bits(db, user_id)
+
+def get_task(db, task_id):
+    return common_bits(db, task_id)
+
+# And theoretically, if we get to the point of 
+# adding comments to our app,
+def get_comment(db, comment_id):
+    return common_bits(db, comment_id)</code></pre>
+<p>To accomplish this, we first need to identify the common bits. Let's scrutinize our functions again.</p>
+<p>You'll notice that really, the only two differences are that our query is slightly different, and we call the function <strong>make_task</strong> in one and <strong>make_user</strong> in the other.</p>
+<h3 id="the-query">The Query</h3>
+<p>If we really look at the queries, they're really not all that different at all:</p>
+<pre><code>user_query = &quot;&quot;&quot;SELECT * from Users WHERE id = ?&quot;&quot;&quot;
+task_query = &quot;&quot;&quot;SELECT * from Tasks WHERE id = ?&quot;&quot;&quot;</code></pre>
+<p>Both of these could be generated from a standard string template:</p>
+<pre><code>query_template = &quot;&quot;&quot;SELECT * from %s WHERE id = ?&quot;&quot;&quot;
+user_query = query_template%(&quot;Users&quot;)
+task_query = query_template%(&quot;Tasks&quot;)
+
+# and because we can
+comment_query = query_template%(&quot;Comments&quot;)</code></pre>
+<p>Knowing this, we can produce the following abstract version of our original functions that works on any table. It will be called <strong>get_from_table_by_id</strong> and will accept a db connection, the table name, and the id we're querying for. It will return a dictionary with the keys being the column name of that table, and the values being pulled from the appropriate record. Try implementing this function now. Scroll ahead past the spoiler to see how it will end up being used, if you need a hint.</p>
+<div class="spoilers">
+
+<pre><code>def get_from_table_by_id(db, table_name, id):
+    c = db.cursor()
+    query_template = &quot;&quot;&quot;SELECT * from %s WHERE id = ?&quot;&quot;&quot;
+    query = query_template%table_name
+    c.execute(query, (id,))
+    row = c.fetchone()
+    if row:
+        if table_name == &quot;Users&quot;:
+            return make_user(row)
+        elif table_name == &quot;Tasks&quot;:
+            return make_task(row)
+    return None</code></pre>
+</div>
+
+<p>With that in place, our <strong>get_user</strong> and <strong>get_task</strong> functions simply become:</p>
+<pre><code>def get_user(db, user_id):
+    return get_from_table_by_id(db, &quot;Users&quot;, user_id)
+
+def get_task(db, task_id):
+    return get_from_table_by_id(db, &quot;Tasks&quot;, task_id)</code></pre>
+<h3 id="the-functions">The Functions</h3>
+<p>Things are looking pretty good, but take a look at our reference implementation in the spoiler. We use an 'if' statement to decide whether to call <strong>make_user</strong> or <strong>make_task</strong>. We've reduced a lot of our code, but we still have to modify this if statement every time we add a new table. The problem is, it doesn't look like there's any other way to choose the correct function to call.</p>
+<p>This perspective is only true if you're looking at the problem in terms of typical <em>procedural programming</em>, which is what we've been doing. There's very much a &quot;do this then do that&quot; mindset to procedural programs, and a strong mental separation between variables (data) and code: data is data, and code <em>performs actions</em>, so therefore they're two different things.</p>
+<p>Contrast this with one the tenets of <em>functional programming</em>, which is that data and code are the same thing. The only difference is, code is data that can be executed. Let's see how this plays out in the python shell. First, let's assume that a function is where you put code, and a variable is where you put data. Next, fire up a shell and repeat the following exercise:</p>
+<pre><code>&gt;&gt;&gt; a = 5           # &#39;a&#39; is our variable
+&gt;&gt;&gt; def my_fn():    # &#39;my_fn&#39; is our function
+...     print &quot;Hello&quot;
+... 
+... 
+&gt;&gt;&gt; print a         # we expect it to return 5
+5
+&gt;&gt;&gt; print my_fn     # notice the lack of parens</code></pre>
+<p>Before we go on, guess what the last line prints.</p>
+<div class="spoilers">
+
+<pre><code>&gt;&gt;&gt; print my_fn     # notice the lack of parens
+&lt;function my_fn at 0x10ec799b0&gt;</code></pre>
+</div>
+
+<p>You may not have expected that. What python is showing us is that <strong>my_fn</strong>, in addition to being a function, is also a variable. The <em>my_fn</em> variable contains the code to be executed, but that code is <strong>not</strong> run unless we add parentheses:</p>
+<pre><code>&gt;&gt;&gt; my_fn()
+Hello
+&gt;&gt;&gt; my_fn
+&lt;function my_fn at 0x10ec799b0&gt;</code></pre>
+<p>This lets us do a certain amount of gymnastics with our function:</p>
+<pre><code>&gt;&gt;&gt; b = my_fn
+&gt;&gt;&gt; b()
+Hello
+&gt;&gt;&gt; d = { &quot;key&quot;: my_fn }
+&gt;&gt;&gt; d[&#39;key&#39;]()
+Hello
+&gt;&gt;&gt; l = [my_fn, my_fn]
+&gt;&gt;&gt; l[-1]()
+Hello</code></pre>
+<p>Here, we've put assigned the code in <strong>my_fn</strong> to another variable, placed it in a dictionary, and placed it in a list. None of these things have inhibited our ability to invoke that code, which we can do at any time by adding parentheses.</p>
+<p>With this trick, we can modify our <strong>get_user</strong> and <strong>get_task</strong> functions above to simply pass along the appropriate function to call of <strong>make_user</strong> and <strong>make_task</strong> when needed:</p>
+<pre><code>def get_user(db, user_id):
+    return get_from_table_by_id(db, &quot;Users&quot;, user_id, make_user)
+
+def get_task(db, task_id):
+    return get_from_table_by_id(db, &quot;Tasks&quot;, task_id, make_task)</code></pre>
+<p>Modify <strong>get_from_table_by_id</strong> to accept the function used to make the appropriate dictionary as the final parameter.</p>
+<div class="spoilers">
+
+<pre><code>def get_from_table_by_id(db, table_name, id, make_dict_fn):
+    c = db.cursor()
+    query_template = &quot;&quot;&quot;SELECT * from %s WHERE id = ?&quot;&quot;&quot;
+    query = query_template%table_name
+    c.execute(query, (id,))
+    row = c.fetchone()
+    if row:
+        return make_dict_fn(row)
+    return None</code></pre>
+</div>
+
+<h2 id="chapter-2-in-which-we-go-for-the-gold-on-the-functional-pommel-horse">Chapter 2: In Which We Go For the Gold on the Functional Pommel Horse</h2>
+<p>We'll try to do something similar with the <strong>new_user</strong> and <strong>new_task</strong> functions. The difference here is that you've got a variable number of columns, which will be different for each table. You also have to contend with the fact that we use a DATETIME('now') statement in one of our queries. You'll need a few tricks to solve this one. Adding the following lines at the top of your file may give you some ideas.</p>
+<pre><code>TASK_COLS = [&quot;id&quot;, &quot;title&quot;, &quot;created_at&quot;, &quot;completed_at&quot;, &quot;user_id&quot;]
+USER_COLS = [&quot;id&quot;, &quot;email&quot;, &quot;password&quot;, &quot;username&quot;]</code></pre>
+<p>It's also vague enough that it might not give you any ideas. Some more hints:</p>
+<ol style="list-style-type: decimal">
+<li>You'll need to use the following construct: &quot;, &quot;.join(some_list)</li>
+<li>Hint 1 is the only hint.</li>
+</ol>
+<p>Basically, we need a way to dynamically create a query string with the correct number of question marks in it. We'll make this easier on ourselves by taking the DATETIME out of our task query, as well as the second null. We can fill them back in later.</p>
+<pre><code>user_query = &quot;&quot;&quot;INSERT INTO Users VALUES (NULL, ?, ?, ?)&quot;&quot;&quot;
+task_query = &quot;&quot;&quot;INSERT INTO Tasks VALUES (NULL, ?, ?, ?, ?)&quot;&quot;&quot;</code></pre>
+<p>We can start by extracting our query template, the common parts of each query:</p>
+<pre><code>query_template = &quot;&quot;&quot;INSERT INTO %s VALUES (%s)&quot;&quot;&quot;</code></pre>
+<p>We know how to fill in the first %s, it is simply the table name. The question mark part is a little tricky, but we have all the information. Remember, an insert statement requires a value for every column in the table...</p>
+<div class="spoilers">
+... and we've created two variables above that are lists of every column title in our table.
+</div>
+
+<p><em>Just in case you wanted to have an a-ha moment, we've hidden the remainder of that thought. Go ahead and uncover this spoiler, it's not that important. Now back to the regularly scheduled tutorial.</em></p>
+<p>If our table has N columns, we need to create a string that has a &quot;NULL&quot;, followed by N question marks, each separated by a comma. Construct this any way you like, for loops, list comprehensions, hamsters. My favorite way uses list addition and multiplication:</p>
+<div class="spoilers">
+
+<pre><code>&gt;&gt;&gt; USER_COLS = [&quot;id&quot;, &quot;email&quot;, &quot;password&quot;, &quot;username&quot;]
+&gt;&gt;&gt; num_cols = len(USER_COLS)
+&gt;&gt;&gt; strings = [&quot;NULL&quot;] + [&quot;?&quot;] * (num_cols-1)
+&gt;&gt;&gt; print strings
+[&#39;NULL&#39;, &#39;?&#39;, &#39;?&#39;, &#39;?&#39;]
+&gt;&gt;&gt; final_str = &quot;, &quot;.join(strings)
+&gt;&gt;&gt; print &quot;%r&quot;%final_str
+&#39;NULL, ?, ?, ?&#39;</code></pre>
+</div>
+
+<p>Now we can take this and try to build our abstract insert function.</p>
+<div class="spoilers">
+
+<pre><code>def insert_into_table(db, table, columns, values):
+    c = db.cursor()
+    query_template = &quot;&quot;&quot;INSERT into %s values (%s)&quot;&quot;&quot;
+    num_cols = len(columns)
+    q_marks = &quot;, &quot;.join([&quot;NULL&quot;] + ([&quot;?&quot;] * (num_cols-1)))
+    query = query_template%(table, q_marks)
+    res = c.execute(query, tuple(values))
+    if res:
+        db.commit()
+        return res.lastrowid</code></pre>
+</div>
+
+<p>The simplification of <strong>new_user</strong> is fairly straightforward:</p>
+<pre><code>def new_user(db, email, password, name):
+    vals = [email, password, name]
+    return insert_into_db(db, &quot;Users&quot;, USER_COLS, vals)</code></pre>
+<p>The simplification of <strong>new_task</strong>, on the other hand, requires a little more thought. We need to reintroduce the DATETIME statement we removed earlier in the abstraction process. We also need to throw in a null. Fortunately, we can replace sqlite's DATETIME mechanism with Python's datetime mechanism, which is ultimately more portable anyway. (The sqlite datetime statement does not work in either postgres or mysql.) As for the null, it turns out we can replace that with python's None type.</p>
+<div class="spoilers">
+
+<pre><code># Add this to the very top of your file
+import datetime
+
+def new_task(db, title, user_id):
+    vals = [title, datetime.datetime.now(), None, user_id] 
+    return insert_into_db(db, &quot;Tasks&quot;, TASK_COLS, vals)</code></pre>
+</div>
+
+<h2 id="chapter-4-in-which-the-old-ones-resurface">Chapter 4: In Which the Old Ones Resurface</h2>
+<p>It's been some time now since we've talked about objects, so let's talk about objects.</p>
+</body>
+</html>

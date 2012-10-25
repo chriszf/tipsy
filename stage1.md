@@ -19,7 +19,7 @@ Start the app by running
 
     $ python ./tipsy.py
 
-And then visiting [http://localhost:5000/tasks](http://localhost:5000/tasks). The first thing you'll notice is that the new task creation form has been rolled into the same page as the list of all the tasks in the system. Spend some time reviewing how this was done in the 'list\_tasks' view and the file 'list\_tasks.html'. You'll also notice that you can click on a task's id, which brings you to a detail page where you can complete the task. This was implemented in the _view\_task_ and _complete\_task_ views.
+And then visiting [http://localhost:5000/tasks](http://localhost:5000/tasks). The first thing you'll notice is that the new task creation form has been rolled into the same page as the list of all the tasks in the system. Spend some time reviewing how this was done in the 'list\_tasks' view and the file 'list\_tasks.html'. You'll also notice that you can click on a task's id, which brings you to a detail page where you can complete the task. This was implemented in the *view\_task* and *complete\_task* views.
 
 In the list\_tasks template, we use a couple of Jinja constructs:
 
@@ -44,7 +44,7 @@ The most significant change to the model is the addition of the make\_user and m
 The [zip function](http://docs.python.org/library/functions.html#zip) in conjunction with the [dict function](http://docs.python.org/library/functions.html#func-dict) (although dict is secretly just a class) is handy enough that I would recommend committing this one to memory.
 
 ### View Changes
-The views are mostly as before, with the exception of the _view\_task_ and _complete\_task_ views, reproduced here:
+The views are mostly as before, with the exception of the *view\_task* and *complete\_task* views, reproduced here:
 
     @app.route("/task/<int:id>", methods=["GET"])
     def view_task(id):
@@ -68,9 +68,9 @@ Let's look at _complete\_task_, which, curiously, has the exact same url as _vie
         model.complete_task(db, id)
         return redirect("/tasks")
 
-The view itself is simple, calling complete\_task on the task id that it's invoked with, but how does the router (the mechanism that chooses which view) know to use one or the other? The differentiator here is the _methods_ parameter to the route. Although there are more methods for accessing urls, browsers typically access a url in one of two ways. The first, the GET, is used when you type a url into your browser, or click on a link. The concept is that you are accessing a url to _get_ the data contained therein.
+The view itself is simple, calling complete\_task on the task id that it's invoked with, but how does the router (the mechanism that chooses which view) know to use one or the other? The differentiator here is the *methods* parameter to the route. Although there are more methods for accessing urls, browsers typically access a url in one of two ways. The first, the GET, is used when you type a url into your browser, or click on a link. The concept is that you are accessing a url to *get* the data contained therein.
 
-The other mechanism is the POST. This cannot be invoked directly by a user. The only way to access a url via a POST is to submit a form. The _action_ for that form is the url that the data is posted to. The difference between the two is largely one of intent: with a POST request, you are submitting data somewhere to either be entered into a system as a new record or updating an existing record.
+The other mechanism is the POST. This cannot be invoked directly by a user. The only way to access a url via a POST is to submit a form. The *action* for that form is the url that the data is posted to. The difference between the two is largely one of intent: with a POST request, you are submitting data somewhere to either be entered into a system as a new record or updating an existing record.
 
 Chapter 1: In Which We Engage in Some Light Housekeeping
 --------------------------------------------------------
@@ -83,12 +83,12 @@ With our new codebase, we have a reasonably decent task list system, but there's
             {% endif %}
     </li>
 
-Look at the _href_ in our &lt;a&gt; tag here. It is dynamically generated, but it is still hardcoded to start with the prefix "/task/". If we think about it, really we don't care what url is attached to the link. In terms of logical flow of our application, we're more interested in activating a specific view, rather than 'going to a url'. Let's look at the signature for the view in question:
+Look at the *href* in our &lt;a&gt; tag here. It is dynamically generated, but it is still hardcoded to start with the prefix "/task/". If we think about it, really we don't care what url is attached to the link. In terms of logical flow of our application, we're more interested in activating a specific view, rather than 'going to a url'. Let's look at the signature for the view in question:
 
     @app.route("/task/<int:id>", methods=["GET"])
     def view_task(id):
 
-Remember, these lines say that the view _view\_task_ is attached to the url "/task/<int:id>". For this to work, somewhere deep in Flask it has to remember that the two are related. Somewhere, this mapping exists:
+Remember, these lines say that the view *view\_task* is attached to the url "/task/<int:id>". For this to work, somewhere deep in Flask it has to remember that the two are related. Somewhere, this mapping exists:
 
     view_task <=> /task/<int:id>
 
@@ -96,12 +96,12 @@ Internally, it probably is done this way:
 
     {"view_task": "/task/<int:id"}
 
-Knowing that, it would be nice, if we had a view name, we could find out exactly what url it's attached to. Flask provides this facility to us in the form of the method __url\_for__. Given the _list\_tasks_ view, here is the behavior of __url\_for__.
+Knowing that, it would be nice, if we had a view name, we could find out exactly what url it's attached to. Flask provides this facility to us in the form of the method __url\_for__. Given the *list\_tasks* view, here is the behavior of __url\_for__.
 
     >>> url_for("list_tasks")
     "/tasks"
 
-That's all fine and well, but our _view\_task_ view requires a parameter, namely, the id of a task to view. We can use [named parameters](http://www.diveintopython.net/power_of_introspection/optional_arguments.html) to populate it:
+That's all fine and well, but our *view\_task* view requires a parameter, namely, the id of a task to view. We can use [named parameters](http://www.diveintopython.net/power_of_introspection/optional_arguments.html) to populate it:
 
     >>> url_for("view_task", id=1)
     "/task/1"
@@ -129,7 +129,7 @@ Our code works, but there's a lot of repetition, both in our views and in our te
 ### The Templates
 Our templates have a lot of boilerplate. We have a common layout for all of our pages, so we end up re-typing the html over and over for every page. There are two downsides. First, it's tedious to type and retype and retype, especially since we know it will be exactly the same every time. If we look at our views, the first 8 lines and the last 3 lines are the same in all of our files. The second downside shows up if we need to change our templates at all. For example, if we add a navigation bar in one file, we have to make sure that navigation bar is in every file.
 
-Jinja2 offers an 'inheritance' mechanism to combat exactly this. We can define a _master_ template which contains the common layout for all of the pages. Extracting out the common parts of all our pages, we get this:
+Jinja2 offers an 'inheritance' mechanism to combat exactly this. We can define a *master* template which contains the common layout for all of the pages. Extracting out the common parts of all our pages, we get this:
     
     <!DOCTYPE html>
     <!-- layout.html -->
@@ -155,7 +155,12 @@ To use this, open up our list\_tasks.html file and replace it entirely with the 
     <div class="tasklist">
         <ul>
         {% for task in tasks %}
-        <li><a href="/task/{{task['id']}}">Task {{ task['id'] }}</a>: {{ task['title'] }}{% if task['completed_at'] %} &mdash; Completed{% endif %}</li>
+        <li>
+            <a href="{{ url_for("view_task", id=task['id']) }}">Task {{ task['id'] }}</a>:
+                {{ task['title'] }}
+                {% if task['completed_at'] %} &mdash; Completed
+                {% endif %}
+        </li>
         {% endfor %}
         </ul>
     </div>
@@ -191,13 +196,13 @@ Now, **set\_up\_db** will be called before every view when a web browser accesse
 
 You may be asking, how does the 'db' variable get from **set\_up\_db** to **view\_task**? (If you didn't ask, you should be now.) The answer is it doesn't. At this point, you might be thinking that a global variable is a good idea, since there's no obvious way to connect the two functions together, without resorting to our duplicated code from before. For the record, this is the only time ever that global variables are a good idea.
 
-Except that we can't use them. Our app, if we step back for a second, is really a web server. This means it is designed to service many different clients simultaneously. If we use a global variable, one user may come in and connect to the database and create a cursor in the middle of another user also creating a cursor, potentially _clobbering_ the other's cursor.
+Except that we can't use them. Our app, if we step back for a second, is really a web server. This means it is designed to service many different clients simultaneously. If we use a global variable, one user may come in and connect to the database and create a cursor in the middle of another user also creating a cursor, potentially *clobbering* the other's cursor.
 
 Instead, we have to use a special global variable that Flask gives us. Update your import line as follows:
 
     from flask import Flask, render_template, redirect, request, session, g
 
-We've added _session_ (which we'll use later) and _g_, which we'll use now. The _g_ variable is a special global variable provided by flask that gets around the multi-user clobbering problem described earlier. We can use it as if it were a module, reading from and assigning to it as we like. Change our **set\_up\_db** function:
+We've added *session* (which we'll use later) and _g_, which we'll use now. The *g* variable is a special global variable provided by flask that gets around the multi-user clobbering problem described earlier. We can use it as if it were a module, reading from and assigning to it as we like. Change our **set\_up\_db** function:
 
     @app.before_request
     def set_up_db():
@@ -207,7 +212,7 @@ And we can update the matching line in our view to use our special global:
 
     task_from_db = model.get_task(g.db, id)
 
-While we're here, we can add a __teardown\_request__ function that cleans up after each view. Even though it isn't strictly necessary in this case, we can close our connection to our database when we're done using it. The method on the _db_ object is __close__.
+While we're here, we can add a *_teardown\_request_* function that cleans up after each view. Even though it isn't strictly necessary in this case, we can close our connection to our database when we're done using it. The method on the *db* object is __close__.
 
 <div class="spoilers">
 
@@ -222,7 +227,7 @@ Chapter 3: In Which We Cure Our App of Amnesia
 ----------------------------------------------
 Web servers are 'stateless'. Our app just blindly executes the view that we request. We can also jump from view to view with impunity: at no point does it remember, nor does it care, what the previous view you looked at was. Or if you even looked at a view. Essentially, our application has no memory of previous actions.
 
-Interestingly, it _seems_ to have memory because we can add tasks to the system and it remembers when we do. If we think about it for a second, you'll realize that it's the database that has memory. The app just blindly asks the database for data, and displays whatever the _database_ remembers.
+Interestingly, it *seems* to have memory because we can add tasks to the system and it remembers when we do. If we think about it for a second, you'll realize that it's the database that has memory. The app just blindly asks the database for data, and displays whatever the *database* remembers.
 
 We can build all manner of apps, even if our app never learns our name. The only problem is, if it never remembers our name, it could never differentiate between different people using it. Obviously, we need to rectify this.
 
@@ -241,11 +246,11 @@ Similarly, we can get data out of the session just like a regular dictionary, ev
     def get_date():
         return str(session['date'])
 
-The session is shared between views. Notice that we don't need to specify _whose_ session we're looking at. There is some flask voodoo that automatically sets the value of the _session_ variable to be the correct dictionary for the appropriate browser. To reiterate: the session variable is always set to the session of the current browser.
+The session is shared between views. Notice that we don't need to specify *whose* session we're looking at. There is some flask voodoo that automatically sets the value of the *session* variable to be the correct dictionary for the appropriate browser. To reiterate: the session variable is always set to the session of the current browser.
 
 The strategy to use this then, is to put some uniquely identifying information into a browser session, and to use that to limit the resources we display to the user. One piece of unique information we have is the user id. If we can store this in a browser's session, we can tell which user is using that browser.
 
-Therefore, being logged in can be thought of as the browser carrying around an id card that identifies it to the server.Let's start by giving a user a place to log in. Make a new view named _login_ that renders a template named _login.html_. Make the view respond to the "/login" url. The template should inherit from our base layout and provide a form where a user can enter their email address and password. We can omit the form action for now.
+Therefore, being logged in can be thought of as the browser carrying around an id card that identifies it to the server.Let's start by giving a user a place to log in. Make a new view named *login* that renders a template named _login.html_. Make the view respond to the "/login" url. The template should inherit from our base layout and provide a form where a user can enter their email address and password. We can omit the form action for now.
 
 <div class="spoilers">
 
@@ -259,7 +264,7 @@ Therefore, being logged in can be thought of as the browser carrying around an i
     {% endblock %}
 </div>
 
-Now, we need to make a view to receive the login credentials. Name it _authenticate_, and it should be attached to the url "/authenticate". It should respond to a POST method, and receive the user's email and password from a form, then call our **authenticate** function in our model module. This function returns the _id_ of any user who correctly authenticates. We should store this id in the session.
+Now, we need to make a view to receive the login credentials. Name it _authenticate_, and it should be attached to the url "/authenticate". It should respond to a POST method, and receive the user's email and password from a form, then call our **authenticate** function in our model module. This function returns the *id* of any user who correctly authenticates. We should store this id in the session.
 
 <div class="spoilers">
 
@@ -271,7 +276,21 @@ Now, we need to make a view to receive the login credentials. Name it _authentic
         session['user_id'] = user_id
 </div>
 
-After we've successfully authenticated, we can modify any user-sensitive views to check for the presence of a user id in the session before proceeding. Modify the _list\_tasks_ view to check for a user id before querying the database.
+Now we have a target for our form from before. Go back and modify the form in _login.html_ to post to our _authenticate_ view as the action. Remember to use the **url_for** function.
+
+<div class="spoilers">
+
+    {% extends "layout.html" %}
+    {% block body %}
+    <form method="POST" action="{{ url_for("authenticate") }}">
+    <input type="string" name="email">
+    <input type="password" name="password">
+    <input type="submit">
+    </form>
+    {% endblock %}
+</div>
+
+After we've successfully authenticated, we can modify any user-sensitive views to check for the presence of a user id in the session before proceeding. Modify the *list\_tasks* view to check for a user id before querying the database.
 
 <div class="spoilers">
 
@@ -284,8 +303,11 @@ After we've successfully authenticated, we can modify any user-sensitive views t
 
 </div>
 
+
 Epilogue: In Which We Are Satisfied With Our Work
 -------------------------------------------------
 Our app is pretty complete at this point in terms of functionality. Now is a good time to import any features from the first version of your app into the newer version, with the new constraints.
 
-There are still improvements we can make, mostly related to the model, and _many_ improvements we can make with regards to error checking (hint: we didn't do any), but we now have the tools to build a flask webapp idiomatically.
+There are still improvements we can make, mostly related to the model, and *many* improvements we can make with regards to error checking (hint: we didn't do any), but we now have the tools to build a flask webapp idiomatically.
+
+[Next Section](tipsy_03.html)

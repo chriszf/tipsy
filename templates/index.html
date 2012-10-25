@@ -1,12 +1,21 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>Tipsy</title>
-        <link rel="stylesheet" href="/static/css/bootstrap.css" type="text/css">
-    </head>
-    <body>
-        <div class="container">
-            <h1>Tipsy - A lightweight tasklist</h1>
+{% extends "layout.html" %}
+{% block body %}
+<div id="loginbox">
+    <h1>Tipsy - A lightweight tasklist</h1>
+
+    <form action="{{ url_for('index') }}" method="post">
+        <div class='input-field'>
+            <label for="email">Email</label>
+            <input type="text" name="email"></input>
         </div>
-    </body>
-</html>
+        <div class='input-field'>
+            <label for="password">Password</label>
+            <input type="password" name="password"></input><br/>
+        </div>
+        <div class='submit-button'>
+            <input type="submit">
+        </div>
+    </form>
+
+</div>
+{% endblock %}

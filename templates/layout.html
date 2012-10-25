@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Tipsy</title>
+        <link rel="stylesheet" href="/static/css/normalize.css" type="text/css">
+        <link rel="stylesheet" href="/static/css/tipsy.css" type="text/css">
+    </head>
+    <body>
+        <div id="navbar">
+            <h1>Tipsy</h1>
+            <div class="login-button"><a href="">Login</a></div>
+        </div>
+        <div class="container">
+            {% block body %}
+            <h1>Tipsy - A lightweight tasklist</h1>
+            {% endblock %}
+        </div>
+    </body>
+</html>
